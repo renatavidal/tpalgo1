@@ -1,0 +1,313 @@
+#/*Coincide con el camino*/include "defendiendo_torres.h"
+#include "utiles.h"
+#include "animos.h"
+#include <strings.h>
+#include <stdbool.h>
+
+#define BUEN_HUMOR 'B'
+#define REGULAR_HUMOR 'R'
+#define MAL_HUMOR 'M'
+#define CLIMA_MIN 25
+#define CLIMA_MED 50
+#define CLIMA_MAX 75
+#define MAX_MATRIZ_1 15
+#define MAX_MATRIZ_2 20
+const int CANTIDAD_EXTRA=10;
+const int RESISTENCIA_TORRES= 600;
+const int MAX_HUMOR= 25;
+const int MED_HUMOR= 10;
+const int MIN_HUMOR=0;
+const char SI='S';
+const char NO='N';
+const int NIVEL_1=1;
+const int NIVEL_2=2;
+const int NIVEL_3=3;
+const int NIVEL_4=4;
+const int FUERZA_ENANOS= 60;
+const int FUERZA_ELFOS= 30;
+const int ENANOS= 'G';
+const int ELFOS= 'L';
+const int CANTIDAD_DEFENSORES_1y2= 5;
+const int CANTIDAD_DEFENSORES_3=3;
+const int CANTIDAD_DEFENSORES_4=4;
+
+/*
+*pre: animo es un dato de tipo char que debe tener valor igual a B, R o M y por ende es valido.
+*post: se calcula el valor de ataque critico segun el humor (para legolas o gimli segun se utilize la funcion), 0 si su humor es malo, 10 si es regular y 25 si es bueno.
+*/ 
+int calcular_critico(char animo, int critico){
+	if (animo== BUEN_HUMOR){
+		(critico = MAX_HUMOR);
+	}
+	else if (animo == REGULAR_HUMOR){
+		(critico = MED_HUMOR);
+	}
+	else {
+		(critico = MIN_HUMOR);
+	}
+	return critico;
+}
+
+bool chequear_niveles_3_4(coordenada_t camino_1[MAX_LONGITUD_CAMINO], coordenada_t camino_2[MAX_LONGITUD_CAMINO], int tope_camino_1, int tope_camino_2, coordenada_t posicion){
+	bool esta_en_camino = false;
+	int i=0;
+	if(posicion.fil > 20 && posicion.col > 20)
+		return false;
+	while(!esta_en_camino && i < tope_camino_1){
+		if(camino_1[i].fil == posicion.fil && camino_1[i].col == posicion.col)
+			esta_en_camino = true;
+	}
+	i = 0;
+	while(!esta_en_camino && i < tope_camino_2){
+		if(camino_2[i].fil == posicion.fil && camino_2[i].col == posicion.col)
+			esta_en_camino = true;
+	}
+	return esta_en_camino;
+}
+
+bool chequear_niveles_1_2(coordenada_t camino[MAX_LONGITUD_CAMINO], int tope_camino, coordenada_t posicion){
+	bool esta_en_camino = false;
+	int i=0;
+	if(posicion.fil > 15 && posicion.col > 15)
+		return false;
+	while(!esta_en_camino && i < tope_camino){
+		if(camino[i].fil == posicion.fil && camino[i].col == posicion.col)
+			esta_en_camino = true;
+	}
+	return esta_en_camino;
+}
+
+
+bool chequear_vector_defensores(defensor_t defensores[MAX_DEFENSORES], int tope_defensores, coordenada_t posicion){
+	bool se_pisa = false;
+	int i=0;
+	while(!se_pisa && i < tope_defensores){
+		if(defensores[i].posicion.fil == posicion.fil && defensores[i].posicion.col == posicion.col)
+			se_pisa = true;
+	}
+	return se_pisa;
+}
+
+/* Pre: Recibe un nivel con los caminos cargados, una posicion cargada y un nivel_actual correcto */ 
+/* Post: Verifica que la coordenada ingresada no esta en un camino, no se pise con otro defensor ni que este fuera del mapa */
+bool coordenada_valida(coordenada_t posicion, nivel_t nivel, int nivel_actual){
+	bool se_pisa = chequear_vector_defensores(nivel.defensores, nivel.tope_defensores, posicion);
+	if(nivel_actual == 1 || nivel_actual == 2)
+		return chequear_niveles_1_2(nivel.camino_1, nivel.tope_camino_1, posicion) && se_pisa;
+	return chequear_niveles_3_4(nivel.camino_1, nivel.camino_2, nivel.tope_camino_1, nivel.tope_camino_2, posicion) && se_pisa;
+}
+
+/* recibe una coordenada de tipo coordenada_t
+ * y le asignara fila y columna.
+ */
+coordenada_t inicializar_coordenada(int fil, int col){
+	coordenada_t coordenada;
+	coordenada.col=col;
+	coordenada.fil=fil;
+	return coordenada;
+}
+
+/*
+*  Guardara la posicion de los defensores el iniciar cada nivel.
+*/
+void ubicar_defensores(nivel_t nivel, int cantidad_defensores, int nivel_actual){
+	printf("Bienvenide a un nuevo nivel!, a continuacion debera asignar el lugar de sus defensores");
+	int i;
+	for (i=0; i<cantidad_defensores; i++){
+		printf("ingrese numero de fila y luego de columna /n");
+		scanf (" %i%i", &nivel.defensores[i].posicion.fil , &nivel.defensores[i].posicion.col );      
+		while(!coordenada_valida(nivel.defensores[i].posicion, nivel, nivel_actual)){
+			printf("ingrese numero de fila y luego de columna /n");
+			scanf (" %i%i", &nivel.defensores[i].posicion.fil , &nivel.defensores[i].posicion.col );      
+		}
+	} 
+}
+
+/*
+* asignara el tipo de defensor y la fuerza de ataque a cada defensor de un nivel.
+*/
+
+int asignar_personaje(defensor_t defensores[MAX_DEFENSORES], int cantidad_defensores, char TIPO, int FUERZA ){
+	int i;
+	for (i=0; i< cantidad_defensores; i++){
+		defensores[i].tipo= TIPO;
+		defensores[i].fuerza_ataque= FUERZA;
+	}
+}
+
+/*
+* obtienen el camino y asignan el tipo de defensor y su fuerza para el nivel 1 y 2.
+*/
+
+void niveles_1y2(nivel_t nivel, coordenada_t entrada, coordenada_t torre, char tipo,int fuerza, int cantidad_defensores){
+	asignar_personaje(nivel.defensores, cantidad_defensores, tipo, fuerza);
+	obtener_camino(nivel.camino_1, &nivel.tope_camino_1, entrada, torre);
+}
+/*
+* obtienen los dos caminos y asignan los tipos de defensores y su fuerza para el nivel 3 y 4.
+*/
+
+void niveles_3y4(nivel_t nivel, coordenada_t entrada_1, coordenada_t entrada_2,coordenada_t torre_1,coordenada_t torre_2, int cantidad_defensores){
+	asignar_personaje(nivel.defensores, cantidad_defensores, ELFOS, FUERZA_ELFOS);
+	asignar_personaje(nivel.defensores, cantidad_defensores, ENANOS, FUERZA_ENANOS);
+	obtener_camino(nivel.camino_1, &nivel.tope_camino_1, entrada_1, torre_1);
+	obtener_camino(nivel.camino_2, &nivel.tope_camino_2, entrada_2, torre_2);
+}
+
+
+/*
+ * aux_nivel debe ser valido, con valores 1, 2 ,3 o 4 unicamente.
+ * inicializara cada nivel, cargando las coordenadas de las torres, las entradas, el tipo de defesor 
+ *y su fuerza de ataque,y generando uno/ o dos camino/s aleatoreo para cada uno
+ *
+ */ 
+void inicializar_nivel(nivel_t nivel,int aux_nivel){ 
+	if (aux_nivel == NIVEL_1){
+		niveles_1y2(nivel, inicializar_coordenada(8,0), inicializar_coordenada(3,15), ENANOS, FUERZA_ENANOS, CANTIDAD_DEFENSORES_1y2);
+
+	}
+	else if (aux_nivel == NIVEL_2){
+		niveles_1y2(nivel, inicializar_coordenada(8,15), inicializar_coordenada(9,0), ELFOS, FUERZA_ELFOS, CANTIDAD_DEFENSORES_1y2);
+
+	}
+	else if (aux_nivel == NIVEL_3){
+		niveles_3y4(nivel, inicializar_coordenada(0,13), inicializar_coordenada(0,1),inicializar_coordenada(20,10),inicializar_coordenada(20,18), CANTIDAD_DEFENSORES_3);  
+	}
+}
+
+void inicializar_juego (juego_t *juego, int viento, int humedad, char animo_legolas, char animo_gimli){
+	juego->torres.resistencia_torre_1= RESISTENCIA_TORRES;
+	juego->torres.resistencia_torre_2= RESISTENCIA_TORRES;
+	juego->torres.enanos_extra= CANTIDAD_EXTRA;
+	juego->torres.elfos_extra=CANTIDAD_EXTRA;
+	int critico_legolas= calcular_critico(animo_legolas, juego->critico_legolas); 
+	int critio_gimli = calcular_critico(animo_gimli, juego->critico_gimli);
+	juego->fallo_legolas= (viento * 1/2);
+	juego->fallo_gimli = (humedad * 1/2); 
+	inicializar_nivel(juego->nivel, juego->nivel_actual);
+}
+
+int estado_nivel(nivel_t nivel){
+	int i=0;
+	bool esta_muerto= true;
+	while(i<nivel.max_enemigos_nivel && esta_muerto){
+		if (nivel.enemigos[i].vida > 0){
+			esta_muerto= false;
+		}
+		i++;
+	}
+	if (!esta_muerto){
+		return 1;
+	}
+	return 0;
+}
+
+int estado_juego(juego_t juego){
+	torres_t torres = juego.torres;
+	nivel_t nivel = juego.nivel;
+	if (torres.resistencia_torre_1==0 || torres.resistencia_torre_2==0){
+		return -1;
+	}
+	else if (torres.resistencia_torre_1>0 && torres.resistencia_torre_2>0 && estado_nivel(nivel)==0){
+		return 0;
+	}
+	else {
+		return 1;
+	}
+}
+
+
+
+/*  * En caso de que el ususario lo desee guardara la posicion de un nuevo defensor. */
+void preguntar_posicion_defensor(defensor_t defensores[MAX_DEFENSORES], int cantidad_defensores){
+	char respuesta;
+	printf("Atencion! tenes la oportunidad de agregar a un personaje defensor! desea hacerlo? presione S para si o N para no /n");
+	scanf(" %c", &respuesta);
+
+	while (respuesta != SI || respuesta != NO ){
+		printf("INCORRECTO! si desea agregar un defensor presione S de lo contrario presione N /n");
+		scanf(" %c", &respuesta);
+	}
+	if (respuesta== SI ){
+		printf("Ingrese la coordenada (fila columna) /n");
+		scanf (" %i%i", &defensores[cantidad_defensores].posicion.fil, &defensores[cantidad_defensores].posicion.col);
+
+	}
+	else{
+		printf("De acuerdo! /n");
+	}  
+}
+
+bool es_defensor(defensor_t defensores[MAX_DEFENSORES], int tope_defensor, coordenada_t posicion){
+	bool es_un_defensor = false;
+	int i = 0;
+	while(!es_un_defensor && i < tope_defensor){
+		if(defensores[i].posicion.fil == posicion.fil && defensores[i].posicion.col == posicion.col)
+			es_un_defensor = true;
+		i++;
+	}
+	return es_un_defensor;	
+}
+
+bool es_enemigo(enemigo_t enemigos[MAX_ENEMIGOS], int tope_enemigos, coordenada_t camino[MAX_LONGITUD_CAMINO], coordenada_t posicion){
+	bool es_un_enemigo = false;
+	int i = 0;
+	while(!es_un_enemigo && i < tope_enemigos){
+		coordenada_t coordenada_camino = camino[enemigos[i].pos_en_camino];
+		if(coordenada_camino.fil == posicion.fil && coordenada_camino.col == posicion.col)
+			es_un_enemigo = true;
+		i++;
+	}
+	return es_un_enemigo;	
+}
+
+void mostrar_nivel_1_2(nivel_t nivel, char defensor){
+	char terreno[MAX_MATRIZ_1][MAX_MATRIZ_1];
+	for(int i=0; i< MAX_MATRIZ_1; i++){
+		for(int j=0; j< MAX_MATRIZ_1; j++){
+			if(chequear_niveles_1_2(nivel.camino_1, nivel.tope_camino_1, inicializar_coordenada(i, j)))
+				terreno[i][j]= '?';
+			else if(es_defensor(nivel.defensores, nivel.tope_defensores, inicializar_coordenada(i, j)))
+				terreno[i][j]= defensor;
+			else if(es_enemigo(nivel.enemigos, nivel.tope_enemigos, nivel.camino_1, inicializar_coordenada(i, j)))
+				terreno[i][j]= 'O';
+			else
+				terreno[i][j]= '*';
+		}
+	}
+}
+
+void mostrar_terreno(nivel_t nivel, int nivel_actual){
+	if(nivel_actual == 1)
+		mostrar_nivel_1_2(nivel, ENANOS);
+	else if(nivel_actual == 2)
+		mostrar_nivel_1_2(nivel, ELFOS);
+	/* mostrar_nivel_3_4(); */
+}
+
+void mostrar_juego(juego_t juego){
+	mostrar_terreno(juego.nivel, juego.nivel_actual);
+}
+
+int agregar_defensor(nivel_t* nivel, coordenada_t posicion, char tipo){
+
+}
+
+
+
+/*to do list:
+ *ataque elfos y enanos hacer funciones
+ * avance de orcos 
+ *bajo vida de torres
+ */
+
+int ataque_enanos(){
+
+}
+
+
+
+void jugar_turno(juego_t* juego){
+
+
+}

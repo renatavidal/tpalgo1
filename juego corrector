@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include "defendiendo_torres.h"
+#include "utiles.h"
+#include "animos.h"
+
+#define HUMOR 'C'
+
+int main(){
+	int viento, humedad;
+	char animo_legolas, animo_gimli;
+	juego_t juego;
+	viento = 25;
+	humedad = 25;
+	animo_legolas = HUMOR;
+	animo_gimli = HUMOR;
+	
+	/* animos(&viento,&humedad,&animo_legolas,&animo_gimli); */
+
+	inicializar_juego ( &juego, viento, humedad, animo_legolas, animo_gimli);
+
+	/* inicializar_nivel( nivel, aux_nivel); */
+
+	estado_nivel(juego.nivel);
+
+	/* ubicar_defensores (defensores,  cantidad_defensores); */
+
+	mostrar_juego(juego);
+	/* preguntar_posicion_defensor( defensores[MAX_DEFENSORES],  cantidad_defensores); */
+        /*  */
+	/* estado_juego(juego); */
+	
+	return 0;
+}
